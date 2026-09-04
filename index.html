@@ -1,0 +1,854 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Coppice Names — Private, Trustless Names on Zcash</title>
+  <meta name="description" content="Coppice Names maps short .zec names to Zcash Unified Addresses with no sidechain, no operator, and no consensus change. Ownership stays hidden behind zero-knowledge proofs, and the 1 ZEC bond is always refundable.">
+  <meta name="keywords" content="Coppice Names, Zcash, .zec, naming, privacy, zero-knowledge, Orchard, unified address, shielded">
+  <meta name="robots" content="index, follow">
+
+  <!-- Open Graph -->
+  <meta property="og:type" content="website">
+  <meta property="og:site_name" content="Coppice Names">
+  <meta property="og:title" content="Coppice Names — Private, Trustless Names on Zcash">
+  <meta property="og:description" content="A .zec name for your Zcash address. No sidechain, no operator, no consensus change. Hidden ownership, refundable 1 ZEC bond, resolution by local verification.">
+  <meta property="og:url" content="https://names.coppice.dev">
+
+  <!-- Favicon -->
+  <link rel="icon" type="image/svg+xml" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 32 32'%3E%3Crect x='3' y='19' width='26' height='3.5' rx='1.75' fill='%231A0C6D'/%3E%3Crect x='6' y='10' width='3.5' height='12.5' rx='1.75' fill='%231A0C6D'/%3E%3Crect x='14.25' y='5' width='3.5' height='17.5' rx='1.75' fill='%231A0C6D'/%3E%3Crect x='22.5' y='12.5' width='3.5' height='10' rx='1.75' fill='%231A0C6D'/%3E%3C/svg%3E">
+
+  <!-- Fonts (all SIL OFL) -->
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Instrument+Sans:wght@400;500;600;700&family=Instrument+Serif:ital@0;1&family=IBM+Plex+Mono:wght@400;500&display=swap" rel="stylesheet">
+
+  <style>
+    /* ==================== RESET ==================== */
+    *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+
+    /* ==================== TOKENS ==================== */
+    :root {
+      --canvas:     #F2F2F2;
+      --white:      #FFFFFF;
+      --ink:        #0B0B10;
+      --indigo:     #1A0C6D;
+      --sky:        #95BFFF;
+      --grey-01:    #D8DCE5;
+      --grey-02:    #ACB1BC;
+      --grey-03:    #666F7C;
+
+      --font-sans:  'Instrument Sans', -apple-system, BlinkMacSystemFont, sans-serif;
+      --font-mono:  'IBM Plex Mono', ui-monospace, monospace;
+      --font-serif: 'Instrument Serif', Georgia, serif;
+
+      --radius-lg:  20px;
+      --radius-md:  10px;
+      --radius-sm:  4px;
+      --margin:     4%;
+    }
+
+    /* ==================== BASE ==================== */
+    html { scroll-behavior: smooth; }
+
+    body {
+      font-family: var(--font-sans);
+      background: var(--canvas);
+      color: var(--ink);
+      line-height: 1.4;
+      -webkit-font-smoothing: antialiased;
+      -moz-osx-font-smoothing: grayscale;
+    }
+
+    h1, h2, h3 {
+      font-weight: 700;
+      letter-spacing: -0.02em;
+      line-height: 1.0;
+    }
+
+    a { color: var(--ink); text-decoration: underline; }
+    a:hover { color: var(--indigo); }
+
+    .container {
+      max-width: 1120px;
+      margin: 0 auto;
+      padding: 0 var(--margin);
+    }
+
+    /* ==================== SCROLL REVEAL ==================== */
+    .rv {
+      opacity: 0;
+      transform: translateY(14px);
+      transition: opacity 0.6s ease, transform 0.6s ease;
+    }
+    .rv.vis { opacity: 1; transform: none; }
+
+    /* ==================== HEADER ==================== */
+    header {
+      position: fixed;
+      top: 0; left: 0; right: 0;
+      z-index: 100;
+      height: 56px;
+      background: rgba(242, 242, 242, 0.88);
+      backdrop-filter: blur(16px);
+      -webkit-backdrop-filter: blur(16px);
+      border-bottom: 1px solid var(--grey-01);
+      display: flex;
+      align-items: center;
+    }
+
+    .header-inner {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      width: 100%;
+    }
+
+    .logo-lockup {
+      display: flex;
+      align-items: center;
+      gap: 10px;
+      text-decoration: none;
+    }
+
+    .logo-symbol { width: 17px; height: 17px; display: block; }
+
+    .logo-wordmark {
+      font-family: var(--font-serif);
+      font-style: italic;
+      font-size: 19px;
+      color: var(--ink);
+      letter-spacing: -0.01em;
+    }
+
+    .logo-project {
+      font-family: var(--font-mono);
+      font-size: 12px;
+      color: var(--grey-03);
+      margin-left: 2px;
+      letter-spacing: 0.01em;
+    }
+
+    header nav { display: flex; gap: 24px; }
+
+    header nav a {
+      font-family: var(--font-mono);
+      font-size: 12px;
+      color: var(--grey-03);
+      text-decoration: none;
+      letter-spacing: 0.01em;
+      transition: color 0.15s;
+    }
+
+    header nav a:hover { color: var(--ink); }
+
+    /* ==================== STATUS STRIP ==================== */
+    .status-strip {
+      position: fixed;
+      top: 56px; left: 0; right: 0;
+      z-index: 99;
+      background: var(--indigo);
+      padding: 7px 0;
+      text-align: center;
+    }
+
+    .status-strip span {
+      font-family: var(--font-mono);
+      font-size: 11px;
+      color: var(--sky);
+      letter-spacing: 0.02em;
+    }
+
+    /* ==================== HERO ==================== */
+    .hero { padding: 176px 0 40px; }
+
+    .hero h1 {
+      font-family: var(--font-serif);
+      font-style: italic;
+      font-weight: 400;
+      font-size: clamp(44px, 6vw, 76px);
+      letter-spacing: -0.02em;
+      line-height: 0.98;
+      max-width: 720px;
+      margin-bottom: 28px;
+      opacity: 0;
+      animation: slideUp 0.5s ease 0.35s forwards;
+    }
+
+    .hero .lead {
+      font-size: 18px;
+      color: var(--grey-03);
+      max-width: 500px;
+      line-height: 1.6;
+      letter-spacing: 0.02em;
+      margin-bottom: 40px;
+      text-align: justify;
+      opacity: 0;
+      animation: slideUp 0.5s ease 0.5s forwards;
+    }
+
+    .hero .lead strong { color: var(--ink); font-weight: 600; }
+
+    .hero .ctas {
+      display: flex;
+      gap: 12px;
+      flex-wrap: wrap;
+      opacity: 0;
+      animation: slideUp 0.5s ease 0.65s forwards;
+    }
+
+    @keyframes slideUp {
+      from { opacity: 0; transform: translateY(10px); }
+      to   { opacity: 1; transform: none; }
+    }
+
+    .hero-illustration {
+      width: 100%;
+      max-width: 400px;
+      height: auto;
+      flex-shrink: 0;
+      opacity: 0;
+      animation: slideUp 0.8s ease 0.8s forwards;
+    }
+
+    /* ==================== BUTTONS ==================== */
+    .btn {
+      display: inline-flex;
+      align-items: center;
+      gap: 6px;
+      font-family: var(--font-mono);
+      font-size: 13px;
+      letter-spacing: 0.02em;
+      padding: 12px 20px;
+      border-radius: var(--radius-sm);
+      cursor: pointer;
+      text-decoration: none;
+      transition: background 0.2s, color 0.2s, border-color 0.2s;
+    }
+
+    .btn-primary { background: var(--ink); color: var(--white); }
+    .btn-primary:hover { background: var(--indigo); color: var(--white); }
+
+    .btn-outline {
+      background: transparent;
+      color: var(--ink);
+      border: 1px solid var(--grey-01);
+    }
+    .btn-outline:hover { border-color: var(--ink); }
+
+    /* ==================== SECTIONS ==================== */
+    section { padding: 80px 0; }
+
+    .sec-label {
+      font-family: var(--font-mono);
+      font-size: 12px;
+      color: var(--grey-03);
+      letter-spacing: 0.01em;
+      margin-bottom: 16px;
+    }
+
+    section h2 {
+      font-size: clamp(30px, 4.5vw, 48px);
+      letter-spacing: -0.03em;
+      margin-bottom: 12px;
+    }
+
+    .sec-desc {
+      font-size: 16px;
+      color: var(--grey-03);
+      max-width: 480px;
+      line-height: 1.6;
+      letter-spacing: 0.02em;
+      margin-bottom: 48px;
+    }
+
+    .rule { height: 1px; background: var(--grey-01); }
+
+    /* ==================== NARRATIVE ==================== */
+    .narrative {
+      font-size: clamp(18px, 2.5vw, 24px);
+      line-height: 1.5;
+      letter-spacing: 0.02em;
+      max-width: 580px;
+      text-align: justify;
+    }
+
+    .narrative .dim { color: var(--grey-03); }
+    .narrative strong { font-weight: 700; }
+
+    /* ==================== CARD GRID ==================== */
+    .card-grid {
+      display: grid;
+      grid-template-columns: 1fr 1fr;
+      gap: 1px;
+      background: var(--grey-01);
+      border-radius: var(--radius-lg);
+      overflow: hidden;
+    }
+
+    .card { background: var(--white); padding: 32px; }
+
+    .card-label {
+      font-family: var(--font-mono);
+      font-size: 12px;
+      color: var(--indigo);
+      letter-spacing: 0.01em;
+      margin-bottom: 14px;
+    }
+
+    .card h3 {
+      font-size: 18px;
+      letter-spacing: -0.01em;
+      line-height: 1.2;
+      margin-bottom: 8px;
+    }
+
+    .card p {
+      font-size: 14px;
+      color: var(--grey-03);
+      line-height: 1.6;
+      letter-spacing: 0.02em;
+    }
+
+    .card p + p { margin-top: 8px; }
+
+    /* ==================== STAT GRID ==================== */
+    .stat-grid {
+      display: grid;
+      grid-template-columns: 1fr 1fr;
+      gap: 1px;
+      background: var(--grey-01);
+      border-radius: var(--radius-lg);
+      overflow: hidden;
+      margin-top: 40px;
+    }
+
+    .stat-cell { background: var(--white); padding: 32px; }
+
+    .stat-num {
+      font-size: 48px;
+      font-weight: 700;
+      letter-spacing: -0.03em;
+      line-height: 1;
+      color: var(--indigo);
+    }
+
+    .stat-label {
+      font-size: 14px;
+      color: var(--grey-03);
+      margin-top: 8px;
+      letter-spacing: 0.02em;
+    }
+
+    /* ==================== TABLES ==================== */
+    .ptable {
+      width: 100%;
+      border-collapse: collapse;
+      background: var(--white);
+      border-radius: var(--radius-lg);
+      overflow: hidden;
+      border: 1px solid var(--grey-01);
+    }
+
+    .ptable th {
+      font-family: var(--font-mono);
+      font-size: 11px;
+      font-weight: 400;
+      color: var(--grey-03);
+      text-align: left;
+      letter-spacing: 0.02em;
+      padding: 14px 20px;
+      border-bottom: 1px solid var(--grey-01);
+    }
+
+    .ptable td {
+      padding: 18px 20px;
+      font-size: 14px;
+      color: var(--grey-03);
+      border-bottom: 1px solid var(--grey-01);
+      vertical-align: top;
+      letter-spacing: 0.02em;
+    }
+
+    .ptable tr:last-child td { border-bottom: none; }
+
+    .ptable td.mc {
+      color: var(--ink);
+      font-weight: 600;
+    }
+
+    .ptable td.mc small {
+      display: block;
+      font-family: var(--font-mono);
+      font-size: 11px;
+      font-weight: 400;
+      color: var(--grey-02);
+      margin-top: 4px;
+    }
+
+    .ptable td.op {
+      font-family: var(--font-mono);
+      color: var(--indigo);
+      font-size: 13px;
+    }
+
+    .pnote {
+      font-family: var(--font-mono);
+      font-size: 11px;
+      color: var(--grey-02);
+      margin-top: 12px;
+      letter-spacing: 0.02em;
+    }
+
+    /* ==================== LIFECYCLE STRIP ==================== */
+    .lc-grid {
+      display: grid;
+      grid-template-columns: repeat(4, 1fr);
+      gap: 1px;
+      background: var(--grey-01);
+      border-radius: var(--radius-lg);
+      overflow: hidden;
+    }
+
+    .lc-cell { background: var(--white); padding: 24px; }
+
+    .lc-op {
+      font-family: var(--font-mono);
+      font-size: 13px;
+      color: var(--indigo);
+      margin-bottom: 12px;
+    }
+
+    .lc-cell h3 {
+      font-size: 15px;
+      letter-spacing: -0.01em;
+      margin-bottom: 6px;
+    }
+
+    .lc-cell p {
+      font-size: 13px;
+      color: var(--grey-03);
+      line-height: 1.55;
+      letter-spacing: 0.02em;
+    }
+
+    /* ==================== FOOTER ==================== */
+    footer {
+      padding: 40px 0 48px;
+    }
+
+    .fi {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      flex-wrap: wrap;
+      gap: 16px;
+      border-top: 1px solid var(--grey-01);
+      padding-top: 24px;
+    }
+
+    .fi .copy {
+      font-family: var(--font-mono);
+      font-size: 12px;
+      color: var(--grey-03);
+      letter-spacing: 0.02em;
+    }
+
+    .fl { display: flex; gap: 20px; }
+
+    .fl a {
+      font-family: var(--font-mono);
+      font-size: 12px;
+      color: var(--grey-03);
+      text-decoration: none;
+      letter-spacing: 0.01em;
+    }
+
+    .fl a:hover { color: var(--ink); }
+
+    /* ==================== RESPONSIVE ==================== */
+    @media (max-width: 900px) {
+      .hero .container { grid-template-columns: 1fr !important; }
+      .hero-illustration { max-width: 340px; margin: 0 auto; }
+      .card-grid, .stat-grid { grid-template-columns: 1fr; }
+      .lc-grid { grid-template-columns: 1fr 1fr; }
+      header nav a:not(.keep) { display: none; }
+    }
+  </style>
+</head>
+<body>
+
+<header>
+  <div class="container header-inner">
+    <a href="#" class="logo-lockup">
+      <svg class="logo-symbol" viewBox="0 0 32 32" xmlns="http://www.w3.org/2000/svg" aria-hidden="true">
+        <rect x="3"  y="19"   width="26"  height="3.5"  rx="1.75" fill="#1A0C6D"/>
+        <rect x="6"  y="10"   width="3.5" height="12.5" rx="1.75" fill="#1A0C6D"/>
+        <rect x="14.25" y="5" width="3.5" height="17.5" rx="1.75" fill="#1A0C6D"/>
+        <rect x="22.5" y="12.5" width="3.5" height="10" rx="1.75" fill="#1A0C6D"/>
+      </svg>
+      <span class="logo-wordmark">Coppice</span>
+      <span class="logo-project">/ names</span>
+    </a>
+    <nav>
+      <a href="#glance">Protocol</a>
+      <a href="#how">How it works</a>
+      <a href="#privacy">Privacy</a>
+      <a href="#economics">Economics</a>
+      <a href="https://github.com/nfl0/coppice-names" target="_blank">GitHub ↗</a>
+      <a href="https://github.com/nfl0/coppice-names/blob/main/docs/WHITEPAPER.pdf" target="_blank" class="keep">Whitepaper ↗</a>
+    </nav>
+  </div>
+</header>
+
+<div class="status-strip">
+  <span>implemented · exercised by conformance vectors · not yet deployed — production parameters TBD</span>
+</div>
+
+<main>
+
+  <!-- ============ HERO ============ -->
+  <section class="hero">
+    <div class="container" style="display: grid; grid-template-columns: 1fr auto; gap: 48px; align-items: center;">
+      <div>
+        <h1>Your Zcash address, but readable.</h1>
+        <p class="lead">Coppice Names maps short <strong>.zec</strong> names to Zcash Unified Addresses — with no sidechain, no operator, and no consensus change. Registration authority stays hidden behind zero-knowledge proofs, and the 1 ZEC bond behind every name is always refundable.</p>
+        <div class="ctas">
+          <a href="https://github.com/nfl0/coppice-names/blob/main/docs/WHITEPAPER.pdf" class="btn btn-primary" target="_blank">Read the whitepaper ↗</a>
+          <a href="https://github.com/nfl0/coppice-names/blob/main/docs/SPECIFICATION.md" class="btn btn-outline" target="_blank">Protocol spec ↗</a>
+          <a href="https://github.com/nfl0/coppice-names" class="btn btn-outline" target="_blank">GitHub ↗</a>
+        </div>
+      </div>
+      <!-- Resolution diagram -->
+      <svg class="hero-illustration" width="400" height="340" viewBox="0 0 400 340" fill="none" xmlns="http://www.w3.org/2000/svg" role="img" aria-label="A wallet resolves alice.zec through Coppice Names to a Zcash Unified Address by local verification">
+        <defs>
+          <linearGradient id="heroGlow" x1="80" y1="40" x2="320" y2="300" gradientUnits="userSpaceOnUse">
+            <stop offset="0" stop-color="#F7F8FA"/>
+            <stop offset="1" stop-color="#EEF4FF"/>
+          </linearGradient>
+          <filter id="softShadow" x="-20%" y="-20%" width="140%" height="140%">
+            <feDropShadow dx="0" dy="10" stdDeviation="18" flood-color="#1A0C6D" flood-opacity="0.10"/>
+          </filter>
+          <style>
+            .hs { font-family: 'Instrument Sans', system-ui, sans-serif; }
+            .hm { font-family: 'IBM Plex Mono', ui-monospace, monospace; }
+          </style>
+        </defs>
+
+        <rect x="16" y="18" width="368" height="304" rx="28" fill="url(#heroGlow)"/>
+        <circle cx="204" cy="160" r="92" fill="#fff" opacity="0.75"/>
+
+        <!-- resolve path -->
+        <path d="M132 148 C160 148 164 148 190 148" stroke="#1A0C6D" stroke-width="1.8" stroke-linecap="round"/>
+        <polygon points="186,144 194,148 186,152" fill="#1A0C6D"/>
+        <path d="M310 148 C330 148 322 214 296 238" stroke="#1A0C6D" stroke-width="1.8" stroke-linecap="round" stroke-dasharray="1 6"/>
+        <polygon points="300,231 293,241 304,243" fill="#1A0C6D"/>
+
+        <!-- name card -->
+        <g filter="url(#softShadow)">
+          <rect x="36" y="106" width="96" height="84" rx="16" fill="#fff" stroke="#D8DCE5"/>
+          <text x="84" y="140" text-anchor="middle" class="hm" font-size="14" font-weight="500" fill="#0B0B10">alice.zec</text>
+          <text x="84" y="160" text-anchor="middle" class="hm" font-size="9" fill="#666F7C">exact name</text>
+        </g>
+
+        <!-- coppice core -->
+        <g filter="url(#softShadow)">
+          <rect x="194" y="96" width="116" height="128" rx="22" fill="#fff" stroke="#1A0C6D" stroke-width="1.3"/>
+          <g transform="translate(236 116)">
+            <rect x="0"    y="21" width="36"  height="5"   rx="2.5" fill="#1A0C6D"/>
+            <rect x="5"    y="9"  width="5"   height="16"  rx="2.5" fill="#1A0C6D"/>
+            <rect x="15.5" y="0"  width="5"   height="25"  rx="2.5" fill="#1A0C6D"/>
+            <rect x="26"   y="12" width="5"   height="13"  rx="2.5" fill="#1A0C6D"/>
+          </g>
+          <text x="252" y="176" text-anchor="middle" class="hs" font-size="13" font-weight="600" fill="#0B0B10">Coppice Names</text>
+          <text x="252" y="194" text-anchor="middle" class="hm" font-size="8.5" fill="#1A0C6D">verify locally</text>
+        </g>
+
+        <!-- UA card -->
+        <g filter="url(#softShadow)">
+          <rect x="216" y="228" width="130" height="56" rx="14" fill="#fff" stroke="#D8DCE5"/>
+          <text x="281" y="252" text-anchor="middle" class="hm" font-size="11" font-weight="500" fill="#0B0B10">u1abc…x9k</text>
+          <text x="281" y="268" text-anchor="middle" class="hm" font-size="8.5" fill="#666F7C">unified address</text>
+        </g>
+
+        <!-- lineage card -->
+        <g filter="url(#softShadow)">
+          <rect x="42" y="228" width="118" height="56" rx="14" fill="#fff" stroke="#D8DCE5"/>
+          <text x="101" y="252" text-anchor="middle" class="hm" font-size="10" fill="#1A0C6D">commit → reveal →</text>
+          <text x="101" y="266" text-anchor="middle" class="hm" font-size="10" fill="#1A0C6D">refresh lineage</text>
+        </g>
+
+        <!-- benefit chips -->
+        <text x="200" y="44" text-anchor="middle" class="hm" font-size="10" fill="#6B7280">a name in — a verified address out</text>
+      </svg>
+    </div>
+  </section>
+
+  <div class="container"><div class="rule"></div></div>
+
+  <!-- ============ 01 PROTOCOL AT A GLANCE ============ -->
+  <section id="glance">
+    <div class="container">
+      <div class="rv">
+        <div class="sec-label">01 — Protocol at a glance</div>
+        <h2>A naming layer Zcash already knows how to carry</h2>
+        <p class="sec-desc">Coppice Names is an application protocol, not a new chain. Zcash consensus stays the sole authority for validity, ordering, and spentness; proofs establish hidden ownership; a deterministic reducer turns canonical history into state.</p>
+      </div>
+      <div class="stat-grid rv">
+        <div class="stat-cell">
+          <div class="stat-num">0</div>
+          <div class="stat-label">consensus changes, sidechains, tokens, or registry operators</div>
+        </div>
+        <div class="stat-cell">
+          <div class="stat-num">1 ZEC</div>
+          <div class="stat-label">refundable bond behind every active name — owned by the registrant, never burned</div>
+        </div>
+        <div class="stat-cell">
+          <div class="stat-num">~24h</div>
+          <div class="stat-label">between a name's operation windows (candidate profile; each window is 24 blocks)</div>
+        </div>
+        <div class="stat-cell">
+          <div class="stat-num">~6 mo</div>
+          <div class="stat-label">lease started fresh by every accepted refresh, under the candidate block timing</div>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <div class="container"><div class="rule"></div></div>
+
+  <!-- ============ 02 WHY IT IS HARD ============ -->
+  <section id="why">
+    <div class="container" style="max-width: 680px;">
+      <div class="rv">
+        <div class="sec-label">02 — Why naming is hard on a privacy currency</div>
+        <div class="narrative">
+          <span class="dim">Strangers must be able to resolve a name. Ownership must stay hidden. No operator can be trusted with the answers. Most designs let go of one.</span><br><br>
+          A public registry publishes who owns what, and every update becomes identity data. A hosted resolver can hide records, but its answers are claims — a censorship and surveillance point. A consensus-level registry demands a network upgrade and hard-codes name policy into the chain. A mutable local index is only as honest as whoever edited it last.<br><br>
+          <strong>Coppice Names keeps the chain as the only authority, hides authority behind proofs, and buys speed with local evidence instead of trust.</strong>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <div class="container"><div class="rule"></div></div>
+
+  <!-- ============ 03 HOW IT WORKS ============ -->
+  <section id="how">
+    <div class="container">
+      <div class="rv">
+        <div class="sec-label">03 — How it works</div>
+        <h2>Commit, reveal, refresh, release</h2>
+        <p class="sec-desc">Bulletins ride inside ordinary Orchard transactions on Zcash. Zero-knowledge proofs carry the private relations; deterministic replay of the canonical chain decides everything public.</p>
+      </div>
+      <div class="lc-grid rv">
+        <div class="lc-cell">
+          <div class="lc-op">commit</div>
+          <h3>Pledge in secret</h3>
+          <p>A commitment hides the name, the target epoch, and the owner. Mempool watchers learn nothing, and a commit is not a reservation.</p>
+        </div>
+        <div class="lc-cell">
+          <div class="lc-op">reveal</div>
+          <h3>Claim in the open</h3>
+          <p>Inside the name's daily window, a proof-carrying reveal opens the commitment and creates the 1 ZEC bond note. Canonical order decides competing claims.</p>
+        </div>
+        <div class="lc-cell">
+          <div class="lc-op">refresh</div>
+          <h3>Update and renew</h3>
+          <p>Changing the address and renewing the lease are one operation — same hidden authority, full new lease. Transfer to another key is impossible by construction.</p>
+        </div>
+        <div class="lc-cell">
+          <div class="lc-op">release</div>
+          <h3>Spend the bond</h3>
+          <p>No release bulletin exists: releasing is an ordinary spend of the bond note. The name then sits out one epoch of cooldown before anyone can claim it.</p>
+        </div>
+      </div>
+      <div class="rv" style="margin-top: 32px;">
+        <div class="card-grid">
+          <div class="card">
+            <div class="card-label">Hidden ownership</div>
+            <h3>The key that controls the record is never published</h3>
+            <p>Every accepted operation proves, in zero knowledge, that the same hidden Orchard authority controls the bond before and after. The proof is fixed: Halo2 over the Pasta curves, bound into the deployment's verifier identity.</p>
+          </div>
+          <div class="card">
+            <div class="card-label">Deterministic state</div>
+            <h3>Every resolver computes the same answer</h3>
+            <p>Lifecycle, lineage, windows, and conflicts come from replaying authenticated Zcash history through one reducer. Two honest resolvers at the same tip cannot disagree — and a proof-valid note can never silently replace accepted state.</p>
+          </div>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <div class="container"><div class="rule"></div></div>
+
+  <!-- ============ 04 PRIVACY ============ -->
+  <section id="privacy">
+    <div class="container">
+      <div class="rv">
+        <div class="sec-label">04 — Privacy</div>
+        <h2>Hidden by construction, public by necessity</h2>
+        <p class="sec-desc">A naming protocol must publish enough for strangers to resolve names. Coppice Names publishes exactly that — and nothing about who holds the keys.</p>
+      </div>
+      <div class="card-grid rv">
+        <div class="card">
+          <div class="card-label">Stays hidden</div>
+          <h3>Authority and note plaintexts</h3>
+          <p>The per-name spending authority is never published. The commit's opening — name, epoch, owner, secret — is visible only to the owner until the reveal. Bond notes are ordinary shielded notes.</p>
+        </div>
+        <div class="card">
+          <div class="card-label">Necessarily public</div>
+          <h3>Name, address, schedule, lineage</h3>
+          <p>After the reveal, the name and its Unified Address are public, and operations for one name are linkable. That is the price of resolution without an operator — stated plainly, not hidden.</p>
+        </div>
+        <div class="card">
+          <div class="card-label">Lookup privacy</div>
+          <h3>Resolving without asking</h3>
+          <p>Wallets acquire canonical evidence during ordinary synchronization, so resolving a name needs no name-specific remote query — nobody learns which name you looked up.</p>
+        </div>
+        <div class="card">
+          <div class="card-label">After termination</div>
+          <h3>A visible gap before reassignment</h3>
+          <p>After expiry or release, the name resolves to nothing for a full epoch of cooldown. Users get a deterministic warning interval before a different record could take the name.</p>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <div class="container"><div class="rule"></div></div>
+
+  <!-- ============ 05 RESOLUTION ============ -->
+  <section id="resolution">
+    <div class="container" style="max-width: 680px;">
+      <div class="rv">
+        <div class="sec-label">05 — Resolution without a trusted index</div>
+        <div class="narrative">
+          <span class="dim">A provider answer is never protocol evidence. Resolution replays authenticated history locally.</span><br><br>
+            The wallet retains a rolling window of compact chain evidence during ordinary synchronization and reuses the commitment-tree facts it already maintains. Resolving any exact name then touches only that name's scheduled windows plus one referenced historical commit — not the whole chain, not a third-party API.<br><br>
+          <strong>Speed comes from derived local evidence, never from promoting an index into authority.</strong>
+        </div>
+      </div>
+      <div class="stat-grid rv">
+        <div class="stat-cell">
+          <div class="stat-num">1.85s</div>
+          <div class="stat-label">measured in-memory replay of a 250,000-block, 688,370-action workload (production path)</div>
+        </div>
+        <div class="stat-cell">
+          <div class="stat-num">99.2%</div>
+          <div class="stat-label">reduction versus the duplicate-tree reference path on the same workload (239.5 s)</div>
+        </div>
+        <div class="stat-cell">
+          <div class="stat-num">0</div>
+          <div class="stat-label">unrelated full-transaction fetches during exact resolution, by design</div>
+        </div>
+        <div class="stat-cell">
+          <div class="stat-num">~143MB</div>
+          <div class="stat-label">rolling compact evidence for a six-month horizon in the measured baseline</div>
+        </div>
+      </div>
+      <p class="pnote">Replay benchmarks are isolated in-memory measurements, not end-to-end latency promises; network acquisition, persistence, and live proof workloads remain to be qualified. See the whitepaper's performance section.</p>
+    </div>
+  </section>
+
+  <div class="container"><div class="rule"></div></div>
+
+  <!-- ============ 06 ECONOMICS ============ -->
+  <section id="economics">
+    <div class="container">
+      <div class="rv">
+        <div class="sec-label">06 — Economics</div>
+        <h2>A refundable bond, not a rent</h2>
+        <p class="sec-desc">Holding a name costs capital, not fees to an operator. Nothing is burned, nothing is levied, and the two costs of using the protocol play different roles.</p>
+      </div>
+      <div class="rv" style="overflow-x:auto;">
+        <table class="ptable">
+          <thead>
+            <tr><th>Cost</th><th>What it is</th><th>Where it goes</th><th>What it prices</th></tr>
+          </thead>
+          <tbody>
+            <tr>
+              <td class="mc">Bond<small>exactly 1 ZEC per active name</small></td>
+              <td>Refundable capital locked in the record's own shielded note</td>
+              <td>Back to the owner on release, minus the transaction fee</td>
+              <td>Holding a name active</td>
+            </tr>
+            <tr>
+              <td class="mc">Transaction fees<small>normal Zcash policy</small></td>
+              <td>Ordinary fees for publishing commit, reveal, refresh, and release transactions</td>
+              <td>Miners, under Zcash fee and relay policy</td>
+              <td>Publishing an operation at all</td>
+            </tr>
+          </tbody>
+        </table>
+      </div>
+      <p class="pnote">A fixed bond does limit accessibility as ZEC's purchasing power changes — a deliberate, documented limitation.</p>
+    </div>
+  </section>
+
+  <div class="container"><div class="rule"></div></div>
+
+  <!-- ============ 07 STATUS ============ -->
+  <section id="status">
+    <div class="container">
+      <div class="rv">
+        <div class="sec-label">07 — Status</div>
+        <h2>Built, verified, not yet deployed</h2>
+        <p class="sec-desc">The protocol, circuits, reducer, and wallet integration are implemented and pinned by conformance vectors with independent consumers. What remains is assurance and deployment work — listed, not hidden.</p>
+      </div>
+      <div class="card-grid rv">
+        <div class="card">
+          <div class="card-label">Done</div>
+          <h3>Implementation and conformance</h3>
+          <p>Protocol construction, deterministic reducer, REVEAL and REFRESH circuits, exact-name resolver, wallet integration, and a positive conformance artifact verified by independent Rust and Python consumers.</p>
+        </div>
+        <div class="card">
+          <div class="card-label">In progress</div>
+          <h3>Independent review and qualification</h3>
+          <p>Formal security definitions and proof sketches, independent cryptographic review, complete adversarial test coverage, and end-to-end deployment qualification are open work. Production parameters and activation height are TBD.</p>
+          <a href="https://github.com/nfl0/coppice-names/blob/main/docs/WHITEPAPER.pdf" target="_blank" class="btn btn-primary" style="margin-top:20px;">Read the details ↗</a>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <!-- ============ FOOTER ============ -->
+  <footer>
+    <div class="container">
+      <div class="fi">
+        <span class="copy">Coppice Names · a Coppice application · 2026</span>
+        <div class="fl">
+          <a href="https://github.com/nfl0/coppice-names/blob/main/docs/WHITEPAPER.pdf" target="_blank">Whitepaper</a>
+          <a href="https://github.com/nfl0/coppice-names/blob/main/docs/SPECIFICATION.md" target="_blank">Specification</a>
+          <a href="https://github.com/nfl0/coppice-names/blob/main/docs/WALKTHROUGH.md" target="_blank">Walkthrough</a>
+          <a href="https://github.com/nfl0/coppice" target="_blank">Coppice runtime</a>
+          <a href="https://github.com/nfl0/coppice-names" target="_blank">GitHub</a>
+        </div>
+      </div>
+    </div>
+  </footer>
+
+</main>
+
+<!-- ============ SCROLL REVEAL ============ -->
+<script>
+  (function () {
+    var targets = document.querySelectorAll('.rv');
+    if (!('IntersectionObserver' in window)) {
+      targets.forEach ? targets.forEach(function (el) { el.classList.add('vis'); })
+                      : [].slice.call(targets).forEach(function (el) { el.classList.add('vis'); });
+      return;
+    }
+    var observer = new IntersectionObserver(function (entries) {
+      entries.forEach(function (entry) {
+        if (entry.isIntersecting) {
+          entry.target.classList.add('vis');
+          observer.unobserve(entry.target);
+        }
+      });
+    }, { threshold: 0.12 });
+    [].slice.call(targets).forEach(function (el) { observer.observe(el); });
+  })();
+</script>
+
+</body>
+</html>
