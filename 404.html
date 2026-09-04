@@ -1,0 +1,85 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Not found — Coppice Names</title>
+  <meta name="robots" content="noindex">
+  <link rel="icon" type="image/svg+xml" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 32 32'%3E%3Crect x='3' y='19' width='26' height='3.5' rx='1.75' fill='%231A0C6D'/%3E%3Crect x='6' y='10' width='3.5' height='12.5' rx='1.75' fill='%231A0C6D'/%3E%3Crect x='14.25' y='5' width='3.5' height='17.5' rx='1.75' fill='%231A0C6D'/%3E%3Crect x='22.5' y='12.5' width='3.5' height='10' rx='1.75' fill='%231A0C6D'/%3E%3C/svg%3E">
+
+  <style>
+    @font-face {
+      font-family: 'Instrument Serif';
+      src: url('fonts/InstrumentSerif-Italic.woff2') format('woff2');
+      font-weight: 400;
+      font-style: italic;
+      font-display: swap;
+    }
+    @font-face {
+      font-family: 'IBM Plex Mono';
+      src: url('fonts/IBMPlexMono-Regular.woff2') format('woff2');
+      font-weight: 400;
+      font-style: normal;
+      font-display: swap;
+    }
+
+    *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+
+    :root {
+      --canvas: #F2F2F2;
+      --ink:    #0B0B10;
+      --indigo: #1A0C6D;
+      --grey-03: #666F7C;
+      --font-sans:  'Instrument Sans', -apple-system, BlinkMacSystemFont, sans-serif;
+      --font-mono:  'IBM Plex Mono', ui-monospace, monospace;
+      --font-serif: 'Instrument Serif', Georgia, serif;
+    }
+
+    body {
+      font-family: var(--font-sans);
+      background: var(--canvas);
+      color: var(--ink);
+      line-height: 1.4;
+      -webkit-font-smoothing: antialiased;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      min-height: 100vh;
+      text-align: center;
+    }
+
+    h1 {
+      font-family: var(--font-serif);
+      font-style: italic;
+      font-weight: 400;
+      font-size: clamp(40px, 6vw, 72px);
+      letter-spacing: -0.02em;
+      margin-bottom: 16px;
+    }
+
+    p { color: var(--grey-03); font-size: 17px; margin-bottom: 28px; letter-spacing: 0.02em; }
+
+    .btn {
+      display: inline-flex;
+      font-family: var(--font-mono);
+      font-size: 13px;
+      padding: 12px 20px;
+      border-radius: 4px;
+      background: var(--ink);
+      color: #fff;
+      text-decoration: none;
+    }
+    .btn:hover { background: var(--indigo); }
+
+    .tag { font-family: var(--font-mono); font-size: 11px; color: var(--grey-03); margin-top: 40px; letter-spacing: 0.02em; }
+  </style>
+</head>
+<body>
+  <div>
+    <h1>This name does not resolve.</h1>
+    <p>The page you asked for does not exist on this site.</p>
+    <a class="btn" href="/">← Back to Coppice Names</a>
+    <div class="tag">404 — missing</div>
+  </div>
+</body>
+</html>
